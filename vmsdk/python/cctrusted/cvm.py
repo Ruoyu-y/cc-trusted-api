@@ -108,14 +108,14 @@ class ConfidentialVM:
     @property
     def cc_event_log(self):
         """
-        return event log data blob
+        Return event log data blob
         """
         return self._cc_event_log
 
     @property
     def ccel_data(self):
         """
-        return ccel data blob
+        Return ccel data blob
         """
         return self._ccel_data
 
@@ -310,9 +310,24 @@ class TdxVM(ConfidentialVM):
         return True
 
     def process_eventlog(self) -> bool:
+        """Process the event log
+
+        Fetch boot time event logs from CCEL table and CCEL data file
+        Save contents into TdxVM attributes
+
+        Args:
+            None
+
+        Returns:
+            A boolean indicating the status of process_eventlog
+            True means the function runs successfully
+            False means error occurred in event log processing
+
+        Raises:
+            PermissionError: An error occurred when accessing CCEL files
         """
-        Process the event log
-        """
+
+        # verify if CCEL files existed
         if not os.path.exists(ConfidentialVM.CCEL_TABLE_FILE):
             LOG.error("Failed to find TDX CCEL table at %s", ConfidentialVM.CCEL_TABLE_FILE)
             return False
