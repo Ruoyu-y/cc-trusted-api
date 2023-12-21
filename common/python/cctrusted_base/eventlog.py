@@ -56,7 +56,7 @@ class TcgEventLog:
         return self._count
 
     def dump(self, is_raw=True) -> None:
-        """Dump event log data
+        """Dump event log data.
 
         Args:
             is_raw: indicator for dump output format
@@ -88,13 +88,12 @@ class TcgEventLog:
         for event in self._event_logs:
             event.dump()
 
-    def select(self, start:int, count:int, start_addr:int, log_len:int) -> None:
-        """Collect selected event logs according to user specification
+    def select(self, start:int, count:int, log_len:int) -> None:
+        """Collect selected event logs according to user specification.
 
         Args:
             start: index of the first event log to collect
             count: total number of event logs to collect
-            start_addr: event log data base address
             log_len: event log data total length
 
         Returns:
@@ -103,7 +102,7 @@ class TcgEventLog:
         Raises:
             None
         """
-        self._parse(start_addr, log_len)
+        self._parse(log_len)
 
         if start is not None:
             if not 0 <= start <= self._count:
@@ -121,8 +120,8 @@ class TcgEventLog:
 
             self._event_logs = self._event_logs[:count-1]
 
-    def _parse(self, start_addr:int, log_len:int) -> None:
-        """Parse event log data into TCG compatible forms
+    def _parse(self, log_len:int) -> None:
+        """Parse event log data into TCG compatible forms.
 
         Run through all event log data and parse the contents accordingly
         Save the parsed event logs into TcgEventLog
@@ -137,12 +136,14 @@ class TcgEventLog:
         Raises:
             None
         """
-        if self._data is None or start_addr is None:
+        if self._data is None:
             LOG.error("Providing invalid data blob and start address")
 
-        blob = BinaryBlob(self._data, start_addr)
+        blob = BinaryBlob(self._data, 0)
         index = 0
 
+        LOG.info("log_len attr: %d" % log_len)
+        LOG.info("len(self._data): %d" % len(self._data))
         while index < log_len:
             start = index
             imr, index = blob.get_uint32(index)
@@ -152,15 +153,15 @@ class TcgEventLog:
                 break
 
             if event_type == TcgEventType.EV_NO_ACTION:
-                header_len = self._parse_header(self._data[start:], start_addr)
+                header_len = self._parse_header(self._data[start:])
                 index = start + header_len
             else:
-                event_log, e_len = self._parse_event_log_body(self._data[start:], start_addr)
+                event_log, e_len = self._parse_event_log_body(self._data[start:])
                 index = start + e_len
                 self._event_logs.append(event_log)
                 self._count += 1
 
-    def _parse_header(self, data:bytes, start_addr:int) -> int:
+    def _parse_header(self, data:bytes) -> int:
         """Parse TCG special Id event according to TCG spec at
         https://trustedcomputinggroup.org/wp-content/uploads/TCG_PCClientSpecPlat_TPM_2p0_1p04_pub.pdf
 
@@ -185,7 +186,7 @@ class TcgEventLog:
         """
         index = 0
 
-        blob = BinaryBlob(data, start_addr)
+        blob = BinaryBlob(data, 0)
 
         imr_index, index = blob.get_uint32(index)
         header_imr = imr_index - 1
@@ -224,7 +225,7 @@ class TcgEventLog:
 
         return index
 
-    def _parse_event_log_body(self, data:bytes, start_addr:int) -> (TcgImrEventLogEntry, int):
+    def _parse_event_log_body(self, data:bytes) -> (TcgImrEventLogEntry, int):
         """Parse TCG event log body as single event log entry (TcgImrEventLogEntry) defined at
         https://trustedcomputinggroup.org/wp-content/uploads/TCG_PCClientSpecPlat_TPM_2p0_1p04_pub.pdf
 
@@ -248,7 +249,7 @@ class TcgEventLog:
         """
         index = 0
 
-        blob = BinaryBlob(data, start_addr)
+        blob = BinaryBlob(data, 0)
 
         imr_index, index = blob.get_uint32(index)
         imr_index = imr_index - 1

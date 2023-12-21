@@ -13,11 +13,14 @@ OUT_FORMAT_HUMAN = "human"
 logging.basicConfig(level=logging.NOTSET, format='%(message)s')
 
 def out_format_validator(out_format):
-    """Validator (callback for ArgumentParser) of output format
+    """Validator (callback for ArgumentParser) of output format.
+
     Args:
         out_format: User specified output format.
+
     Returns:
         Validated value of the argument.
+
     Raises:
         ValueError: An invalid value is given by user.
     """
@@ -41,7 +44,6 @@ def main():
 
     event_logs = CCTrustedVmSdk.inst().get_eventlog(args.start, args.count)
     if event_logs is not None:
-        LOG.info("Total %d of event logs fetched.", len(event_logs.event_logs))
         event_logs.dump(args.out_format == OUT_FORMAT_RAW)
 
 if __name__ == "__main__":
