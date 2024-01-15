@@ -54,7 +54,7 @@ class CCTrustedVmSdk(CCTrustedApi):
         for DRTM).
 
         Beyond the real mesurement register, some SDK may extend virtual measurement
-        reigster for addtional trust chain like container, namespace, cluster in
+        reigster for additional trust chain like container, namespace, cluster in
         cloud native paradiagm.
 
         Returns:
@@ -85,6 +85,9 @@ class CCTrustedVmSdk(CCTrustedApi):
 
         if algo_id is None or algo_id is TcgAlgorithmRegistry.TPM_ALG_ERROR:
             algo_id = self._cvm.default_algo_id
+
+        # Re-do the processing to fetch the latest measurements
+        self._cvm.process_cc_report()
 
         return self._cvm.imrs[imr_index].digest(algo_id)
 
@@ -118,6 +121,10 @@ class CCTrustedVmSdk(CCTrustedApi):
         Returns:
             ``TcgEventLog`` object.
         """
+
+        # Re-do the processing to fetch the latest event logs
+        self._cvm.process_eventlog()
+
         event_logs = TcgEventLog(self._cvm.cc_event_log)
         event_logs.select(start, count)
 
