@@ -41,7 +41,8 @@ class ConfidentialVM:
         self._cc_type:int = cctype
         self._is_init:bool = False
         self._imrs:dict[int, TcgIMR] = {}
-        self._cc_event_log:bytes = None
+        self._boot_time_event_log:bytes = None
+        self._runtime_event_log = None
 
     @property
     def cc_type(self) -> int:
@@ -71,9 +72,14 @@ class ConfidentialVM:
         return ConfidentialVM.TYPE_CC_STRING[self.cc_type]
 
     @property
-    def cc_event_log(self):
-        """event log data blob."""
-        return self._cc_event_log
+    def boot_time_event_log(self):
+        """boot time event log data blob."""
+        return self._boot_time_event_log
+
+    @property
+    def runtime_event_log(self):
+        """runtime event log data blob"""
+        return self._runtime_event_log
 
     def init(self) -> bool:
         """Initialize the CC stub and environment.
@@ -213,6 +219,8 @@ class TdxVM(ConfidentialVM):
     # ACPI table containing the event logs
     ACPI_TABLE_FILE = "/sys/firmware/acpi/tables/CCEL"
     ACPI_TABLE_DATA_FILE = "/sys/firmware/acpi/tables/data/CCEL"
+    #IMA_DATA_FILE = "/sys/kernel/security/integrity/ima/binary_runtime_measurements"
+    IMA_DATA_FILE = "/sys/kernel/security/integrity/ima/ascii_runtime_measurements"
 
     def __init__(self):
         ConfidentialVM.__init__(self, ConfidentialVM.TYPE_CC_TDX)
@@ -316,11 +324,24 @@ class TdxVM(ConfidentialVM):
 
         try:
             with open(TdxVM.ACPI_TABLE_DATA_FILE, "rb") as f:
-                self._cc_event_log = f.read()
-                assert len(self._cc_event_log) > 0
+                self._boot_time_event_log = f.read()
+                assert len(self._boot_time_event_log) > 0
         except (PermissionError, OSError):
             LOG.error("Need root permission to open file %s", TdxVM.ACPI_TABLE_DATA_FILE)
             return False
+
+        if not os.path.exists(TdxVM.IMA_DATA_FILE):
+            LOG.error("Failed to find IMA binary measurements at %s", TdxVM.IMA_DATA_FILE)
+            return True
+
+        try:
+            with open(TdxVM.IMA_DATA_FILE, "rb") as f:
+                self._runtime_event_log = f.read()
+                if len(self._runtime_event_log) == 0:
+                    LOG.info("Empty IMA measurement found at %s", TdxVM.IMA_DATA_FILE)
+        except (PermissionError, OSError):
+            LOG.error("Need root permission to open file %s", TdxVM.IMA_DATA_FILE)
+
         return True
 
 
